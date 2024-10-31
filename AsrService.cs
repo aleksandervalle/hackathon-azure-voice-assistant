@@ -20,7 +20,7 @@ namespace AzureVoiceAssistant
             }
 
             speechConfig = SpeechConfig.FromSubscription(speechKey, speechRegion);
-            speechConfig.SpeechRecognitionLanguage = "en-US"; // Set desired language
+            speechConfig.SpeechRecognitionLanguage = "nb-NO"; // Set desired language
         }
 
         public async Task<string> RecognizeSpeechAsync()

@@ -1,8 +1,9 @@
 ﻿using System;
+using System.ClientModel;
 using System.Threading.Tasks;
-using System.Net.Http;
-using System.Text;
-using Newtonsoft.Json;
+using Azure;
+using Azure.AI.OpenAI;
+using OpenAI.Chat;
 
 namespace AzureVoiceAssistant
 {
@@ -23,6 +24,12 @@ namespace AzureVoiceAssistant
             var asrService = new AsrService();
             var ttsService = new TtsService();
 
+            AzureOpenAIClient azureClient = new(
+                new Uri(AppConfig.ChatCompletionEndpoint),
+                new ApiKeyCredential(AppConfig.ChatCompletionKey));
+
+            ChatClient chatClient = azureClient.GetChatClient(AppConfig.ChatCompletionModel);
+
             while (true)
             {
                 ConsoleKeyInfo keyInfo = Console.ReadKey(true);
@@ -33,15 +40,17 @@ namespace AzureVoiceAssistant
                     if (!string.IsNullOrEmpty(transcribedText))
                     {
                         Console.WriteLine($"You said: {transcribedText}");
-                        conversationManager.AddMessage("user", transcribedText);
+                        conversationManager.AddUserMessage(transcribedText);
 
-                        string prompt = conversationManager.GetConversationPrompt();
-                        string botResponse = await GenerateBotResponseAsync(prompt, "asdf");
+                        string botResponse = await GenerateBotResponseAsync(conversationManager, chatClient);
 
-                        conversationManager.AddMessage("bot", botResponse);
-                        Console.WriteLine($"Bot: {botResponse}");
+                        if (!string.IsNullOrEmpty(botResponse))
+                        {
+                            conversationManager.AddAssistantMessage(botResponse);
+                            Console.WriteLine($"Bot: {botResponse}");
 
-                        await ttsService.SynthesizeAndPlayAsync(botResponse);
+                            await ttsService.SynthesizeAndPlayAsync(botResponse);
+                        }
                     }
                 }
                 else if (keyInfo.Key == ConsoleKey.Escape || (keyInfo.KeyChar == 'e' || keyInfo.KeyChar == 'E'))
@@ -52,31 +61,19 @@ namespace AzureVoiceAssistant
             }
         }
 
-        static async Task<string> GenerateBotResponseAsync(string prompt, string region)
+        static async Task<string> GenerateBotResponseAsync(ConversationManager conversationManager, ChatClient chatClient)
         {
-            //return "This is a placeholder response. Implement your own logic here.";
+            var conversation = conversationManager.GetConversation();
 
-            string apiEndpoint = $"https://{region}.api.cognitive.microsoft.com/your-conversational-model-endpoint";
-            string apiKey = Environment.GetEnvironmentVariable("CONVERSATION_API_KEY"); // Set this environment variable
+            // Call the Azure OpenAI Chat API with the conversation history
+            var response = await chatClient.CompleteChatAsync(
+                conversation,
+                new ChatCompletionOptions
+                {
+                    Temperature = 0.0f
+                });
 
-            using var client = new HttpClient();
-            client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", apiKey);
-
-            var payload = new
-            {
-                prompt = prompt,
-                max_tokens = 250
-            };
-
-            string jsonPayload = JsonConvert.SerializeObject(payload);
-            var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
-
-            HttpResponseMessage response = await client.PostAsync(apiEndpoint, content);
-            response.EnsureSuccessStatusCode();
-
-            string jsonResponse = await response.Content.ReadAsStringAsync();
-            dynamic result = JsonConvert.DeserializeObject(jsonResponse);
-            return result.generated_text;
+            return response?.Value?.Content?.FirstOrDefault()?.Text ?? string.Empty;
         }
     }
 }

@@ -1,44 +1,34 @@
+using Azure.AI.OpenAI;
+using OpenAI.Chat;
 using System.Collections.Generic;
-using System.Text;
 
 namespace AzureVoiceAssistant
 {
     public class ConversationManager
     {
-        private List<(string Sender, string Message)> conversation;
+        private List<ChatMessage> conversation;
 
         public ConversationManager()
         {
-            conversation = new List<(string, string)>
+            conversation = new List<ChatMessage>
             {
-                ("user", "You are a large language model known as OpenChat, the open-source counterpart to ChatGPT, equally powerful as its closed-source sibling. You communicate using an advanced deep learning based speech synthesis system made by coqui, so feel free to include interjections (such as 'hmm', 'oh', 'right', 'wow'...), but avoid using emojis, symbols, code snippets, or anything else that does not translate well to spoken language. For example, instead of %, say percent; instead of =, say equal; and for *, say times, etc. Also please avoid using lists with numbers as items like so 1. 2. Use regular sentences instead."),
-                ("bot", "No problem. Anything else?"),
-                ("user", "Yeah, please always respond in a sentence or two from now on."),
-                ("bot", "Sure, I'll be concise.")
+                new SystemChatMessage("Du er en hjelpsom assistent som gir korte svar.")
             };
         }
 
-        public void AddMessage(string sender, string message)
+        public void AddUserMessage(string message)
         {
-            conversation.Add((sender, message));
+            conversation.Add(new UserChatMessage(message));
         }
 
-        public string GetConversationPrompt()
+        public void AddAssistantMessage(string message)
         {
-            StringBuilder prompt = new StringBuilder();
-            foreach (var (Sender, Message) in conversation)
-            {
-                if (Sender == "user")
-                {
-                    prompt.AppendLine($"User: {Message}");
-                    prompt.Append("Assistant:");
-                }
-                else
-                {
-                    prompt.AppendLine($"{Message}");
-                }
-            }
-            return prompt.ToString();
+            conversation.Add(new AssistantChatMessage(message));
+        }
+
+        public IReadOnlyList<ChatMessage> GetConversation()
+        {
+            return conversation.AsReadOnly();
         }
     }
 }

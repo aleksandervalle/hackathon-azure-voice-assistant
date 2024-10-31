@@ -21,7 +21,8 @@ namespace AzureVoiceAssistant
             }
 
             speechConfig = SpeechConfig.FromSubscription(speechKey, speechRegion);
-            speechConfig.SpeechSynthesisVoiceName = "en-US-AvaNeural"; // Set desired voice
+            speechConfig.SpeechSynthesisLanguage = "nb-NO"; // Set desired language
+            speechConfig.SpeechSynthesisVoiceName = "en-US-AvaMultilingualNeural"; // Set desired voice
         }
 
         public async Task SynthesizeAndPlayAsync(string text)
