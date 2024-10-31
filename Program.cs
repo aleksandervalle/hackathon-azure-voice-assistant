@@ -54,7 +54,7 @@ namespace AzureVoiceAssistant
 
         static async Task<string> GenerateBotResponseAsync(string prompt, string region)
         {
-            return "This is a placeholder response. Implement your own logic here.";
+            //return "This is a placeholder response. Implement your own logic here.";
 
             string apiEndpoint = $"https://{region}.api.cognitive.microsoft.com/your-conversational-model-endpoint";
             string apiKey = Environment.GetEnvironmentVariable("CONVERSATION_API_KEY"); // Set this environment variable
